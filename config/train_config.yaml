@@ -1,0 +1,31 @@
+# Shadow Removal 训练配置文件
+
+# 数据配置
+data:
+  train_dir: "Dataset/train"
+  val_dir: "Dataset/val"
+  crop_size: 384
+  batch_size: 4
+  num_workers: 4
+
+# 模型配置
+model:
+  name: "fusion_net"
+  resume: null  # 检查点路径，如需断点续训则填写路径
+
+# 训练配置
+training:
+  epochs: 100
+  lr: 1.0e-4          # 初始学习率
+  lr_min: 6.25e-6     # 最小学习率
+  alpha: 0.2          # SSIM损失权重
+
+# 检查点配置
+checkpoint:
+  save_dir: "checkpoints"
+  save_freq: 1  # 每个epoch保存一次
+
+# 日志配置
+logging:
+  use_swanlab: true
+  log_freq: 10  # 每10个step记录一次

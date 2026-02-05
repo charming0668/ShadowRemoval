@@ -1,0 +1,12 @@
+# Shadow Removal 测试配置文件
+
+# 数据配置
+data:
+  test_dir: "Dataset/val"  # 测试集目录
+  crop_size: 384
+  num_workers: 4
+
+# 测试配置
+test:
+  output_dir: "results"  # 结果保存目录
+  save_images: true      # 是否保存预测图像

@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+weights/refinement.pkl
+weights/shadowremoval.pkl
+Dataset/
+checkpoints/best_model.pth
+checkpoints/latest_model.pth
