@@ -1,10 +1,16 @@
 """
 评估指标模块
-实现PSNR和SSIM计算
+实现PSNR、SSIM和LPIPS计算
 """
 import torch
 import torch.nn.functional as F
 import math
+import os
+import sys
+
+# Add parent directory to path for LPIPS import
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from saicinpainting.evaluation.losses.lpips import PerceptualLoss
 
 
 def calculate_psnr(img1, img2, max_val=1.0):
@@ -80,3 +86,58 @@ def create_window(window_size, channel):
     _2D_window = _1D_window.mm(_1D_window.t()).float().unsqueeze(0).unsqueeze(0)
     window = _2D_window.expand(channel, 1, window_size, window_size).contiguous()
     return window
+
+
+class LPIPSMetric:
+    """
+    LPIPS (Learned Perceptual Image Patch Similarity) 指标
+    使用预训练的深度网络计算感知相似度
+    """
+    def __init__(self, net='vgg', use_gpu=True):
+        """
+        初始化LPIPS模型
+        
+        Args:
+            net: 使用的网络类型 ('alex', 'vgg', 'squeeze')
+            use_gpu: 是否使用GPU
+        """
+        self.model = PerceptualLoss(model='net-lin', net=net, use_gpu=use_gpu, spatial=False)
+        self.model.eval()
+        if use_gpu and torch.cuda.is_available():
+            self.model = self.model.cuda()
+    
+    def calculate(self, img1, img2):
+        """
+        计算LPIPS距离
+        
+        Args:
+            img1: 预测图像 [B, C, H, W], 范围[0, 1]
+            img2: 真实图像 [B, C, H, W], 范围[0, 1]
+            
+        Returns:
+            LPIPS距离值 (越小越好，0表示完全相同)
+        """
+        with torch.no_grad():
+            # LPIPS expects images in [0, 1] range and will normalize internally
+            lpips_value = self.model(img1, img2, normalize=True)
+            return lpips_value.item()
+
+
+def calculate_lpips(img1, img2, lpips_model=None, net='vgg'):
+    """
+    计算LPIPS (学习感知图像块相似性)
+    
+    Args:
+        img1: 预测图像 [B, C, H, W], 范围[0, 1]
+        img2: 真实图像 [B, C, H, W], 范围[0, 1]
+        lpips_model: 预先初始化的LPIPS模型（可选，用于避免重复初始化）
+        net: 使用的网络类型 ('alex', 'vgg', 'squeeze')
+        
+    Returns:
+        LPIPS距离值 (越小越好)
+    """
+    if lpips_model is None:
+        use_gpu = img1.is_cuda
+        lpips_model = LPIPSMetric(net=net, use_gpu=use_gpu)
+    
+    return lpips_model.calculate(img1, img2)
