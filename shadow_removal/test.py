@@ -13,7 +13,7 @@ from omegaconf import OmegaConf
 from PIL import Image
 import numpy as np
 
-from model_convnext import fusion_net
+from model import final_net
 from dataset import ShadowRemovalDataset
 from metrics import calculate_psnr, calculate_ssim, LPIPSMetric
 
@@ -22,9 +22,21 @@ def test(config, checkpoint_path):
     """测试模型"""
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    model = fusion_net().to(device)
+    model = final_net().to(device)
+    
+    # Load remove_model (from trained checkpoint)
     checkpoint = torch.load(checkpoint_path, map_location=device)
-    model.load_state_dict(checkpoint['model_state_dict'])
+    # The checkpoint typically contains a dict with 'model_state_dict' for fusion_net
+    model.remove_model.load_state_dict(checkpoint['model_state_dict'])
+    
+    # Load enhancement_model (from fixed path)
+    refinement_path = '/data1/hmcai/Shadow_R/weights/refinement.pkl'
+    if os.path.exists(refinement_path):
+        model.enhancement_model.load_state_dict(torch.load(refinement_path, map_location=device))
+        print(f"Loaded refinement weights from {refinement_path}")
+    else:
+        print(f"WARNING: Refinement weights not found at {refinement_path}")
+        
     model.eval()
     
     test_dataset = ShadowRemovalDataset(config.data.test_dir, crop_size=config.data.crop_size, is_train=False)
@@ -50,7 +62,14 @@ def test(config, checkpoint_path):
             shadow = shadow.to(device)
             no_shadow = no_shadow.to(device)
             
-            pred = model(shadow)
+            # Forward pass with intermediate output
+            pred1 = model.remove_model(shadow)
+            
+            # Enhancement (Restormer) part
+            scale = 0.05
+            pred2 = (model.enhancement_model(pred1) * scale + pred1) / (1 + scale)
+            
+            pred = pred2 # Final prediction for metrics
             
             # Calculate metrics
             psnr = calculate_psnr(pred, no_shadow)
@@ -67,12 +86,13 @@ def test(config, checkpoint_path):
                 return (t[0].cpu().numpy().transpose(1, 2, 0) * 255).clip(0, 255).astype(np.uint8)
             
             img_shadow = tensor2img(shadow)
-            img_pred = tensor2img(pred)
+            img_pred1 = tensor2img(pred1)
+            img_pred2 = tensor2img(pred2)
             img_gt = tensor2img(no_shadow)
             
-            # Concatenate: Shadow | Pred | GT
+            # Concatenate: Shadow | Pred1 | Pred2 | GT
             # Ensure heights match if needed, but usually they are same size
-            concat_img = np.concatenate([img_shadow, img_pred, img_gt], axis=1)
+            concat_img = np.concatenate([img_shadow, img_pred1, img_pred2, img_gt], axis=1)
             
             # Save to temporary file
             temp_filename = f"temp_{idx}.png"
