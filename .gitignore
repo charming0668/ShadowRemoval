@@ -1,19 +1,34 @@
+# Python缓存
 __pycache__/
 *.pyc
-weights/
+*.pyo
+
+# 数据集目录
 Dataset/
+ShadowDataset/
+
+# 模型权重
+weights/
+
+# 检查点
 checkpoints/
-models/
+
+# 输出目录
+output/
 test/
 val/
 predict/
-output/
 test_dataset/
+
+# 日志
+swanlog/
+
+# 文档和图片
+figure/
+markdown/
+doc/
+
+# 配置文件
 .agent/rules/code-markdown-style.md
 .trae/.ignore
-ShadowDataset/
-weights/
-/data1/hmcai/ShadowRemoval/ShadowDataset/test/LQ
-doc/reorganization_record.md
-markdown/
 .mignore
