@@ -12,8 +12,8 @@ from PIL import Image
 import numpy as np
 
 from model_convnext import fusion_net
-from dataset import ShadowRemovalDataset
-from metrics import calculate_psnr, calculate_ssim, LPIPSMetric
+from shadow_removal.dataset import ShadowRemovalDataset
+from shadow_removal.metrics import calculate_psnr, calculate_ssim, LPIPSMetric
 
 
 def test(config, checkpoint_path):

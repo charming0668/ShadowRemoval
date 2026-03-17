@@ -5,3 +5,15 @@ Dataset/
 checkpoints/
 models/
 test/
+val/
+predict/
+output/
+test_dataset/
+.agent/rules/code-markdown-style.md
+.trae/.ignore
+ShadowDataset/
+weights/
+/data1/hmcai/ShadowRemoval/ShadowDataset/test/LQ
+doc/reorganization_record.md
+markdown/
+.mignore

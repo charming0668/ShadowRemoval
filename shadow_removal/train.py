@@ -16,9 +16,9 @@ from tqdm import tqdm
 from datetime import datetime
 
 from model_convnext import fusion_net
-from dataset import ShadowRemovalDataset
-from losses import CombinedLoss
-from metrics import calculate_psnr, calculate_ssim
+from shadow_removal.dataset import ShadowRemovalDataset
+from shadow_removal.losses import CombinedLoss
+from shadow_removal.metrics import calculate_psnr, calculate_ssim
 
 
 def setup_ddp():

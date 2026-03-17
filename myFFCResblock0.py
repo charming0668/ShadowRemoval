@@ -9,9 +9,12 @@ from saicinpainting.training.modules.ffc0 import FFCResnetBlock
 from saicinpainting.training.modules.ffc0 import FFC_BN_ACT
 
 
-
-
 class myFFCResblock(nn.Module):
+    """
+    FFCResnetBlock implementation that leverages Fast Fourier Convolutions to capture 
+    both local and global features, specifically optimized for image inpainting tasks.
+    """
+
     def __init__(self, input_nc, output_nc, n_blocks=2, norm_layer=nn.BatchNorm2d,     #128--->64
                  padding_type='reflect', activation_layer=nn.ReLU,
                  resnet_conv_kwargs={},

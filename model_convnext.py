@@ -117,9 +117,9 @@ class DWT_transform(nn.Module):
 def blockUNet(in_c, out_c, name, transposed=False, bn=False, relu=True, dropout=False):
     block = nn.Sequential()
     if relu:
-        block.add_module('%s_relu' % name, nn.ReLU(inplace=True))
+        block.add_module('%s_relu' % name, nn.ReLU(inplace=False))
     else:
-        block.add_module('%s_leakyrelu' % name, nn.LeakyReLU(0.2, inplace=True))
+        block.add_module('%s_leakyrelu' % name, nn.LeakyReLU(0.2, inplace=False))
     if not transposed:
         block.add_module('%s_conv' % name, nn.Conv2d(in_c, out_c, 4, 2, 1, bias=False))
     else:
@@ -127,7 +127,7 @@ def blockUNet(in_c, out_c, name, transposed=False, bn=False, relu=True, dropout=
     if bn:
         block.add_module('%s_bn' % name, nn.BatchNorm2d(out_c))
     if dropout:
-        block.add_module('%s_dropout' % name, nn.Dropout2d(0.5, inplace=True))
+        block.add_module('%s_dropout' % name, nn.Dropout2d(0.5, inplace=False))
     return block
 
 class dwt_ffc_UNet2(nn.Module):
@@ -377,7 +377,7 @@ class PALayer(nn.Module):
         super(PALayer, self).__init__()
         self.pa = nn.Sequential(
             nn.Conv2d(channel, channel // 8, 1, padding=0, bias=True),
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=False),
             nn.Conv2d(channel // 8, 1, 1, padding=0, bias=True),
             nn.Sigmoid()
         )
@@ -391,7 +391,7 @@ class CALayer(nn.Module):
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.ca = nn.Sequential(
             nn.Conv2d(channel, channel // 8, 1, padding=0, bias=True),
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=False),
             nn.Conv2d(channel // 8, channel, 1, padding=0, bias=True),
             nn.Sigmoid()
         )
@@ -404,7 +404,7 @@ class CP_Attention_block(nn.Module):
     def __init__(self, conv, dim, kernel_size):
         super(CP_Attention_block, self).__init__()
         self.conv1 = conv(dim, dim, kernel_size, bias=True)
-        self.act1 = nn.ReLU(inplace=True)
+        self.act1 = nn.ReLU(inplace=False)
         self.conv2 = conv(dim, dim, kernel_size, bias=True)
         self.calayer = CALayer(dim)
         self.palayer = PALayer(dim)
@@ -414,7 +414,7 @@ class CP_Attention_block(nn.Module):
         res = self.conv2(res)
         res = self.calayer(res)
         res = self.palayer(res)
-        res += x
+        res = res + x
         return res
 
 def default_conv(in_channels, out_channels, kernel_size, bias=True):
@@ -494,42 +494,48 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.net = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=3, padding=1),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=False),
 
             nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=False),
 
             nn.Conv2d(64, 128, kernel_size=3, padding=1),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=False),
 
             nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=False),
 
             nn.Conv2d(128, 256, kernel_size=3, padding=1),
             nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=False),
 
             nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=False),
 
             nn.Conv2d(256, 512, kernel_size=3, padding=1),
             nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=False),
 
             nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=False),
 
             nn.AdaptiveAvgPool2d(1),
             nn.Conv2d(512, 1024, kernel_size=1),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=False),
             nn.Conv2d(1024, 1, kernel_size=1)
         )
 
     def forward(self, x):
+        out = x
+        for layer in self.net:
+            out = layer(out)
+        
         batch_size = x.size(0)
-        return torch.sigmoid(self.net(x).view(batch_size))
+        # 返回 logits
+        # 注意：移除sigmoid，因为损失函数使用logits
+        return out.view(batch_size)
