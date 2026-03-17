@@ -62,9 +62,13 @@ class PerceptualLoss(nn.Module):
         vgg = torchvision.models.vgg19(pretrained=True).features
         self.vgg_layers = nn.Sequential(*list(vgg.children())[:30])
         
-        # 冻结参数
+        # 冻结参数并禁用inplace
         for param in self.vgg_layers.parameters():
             param.requires_grad = False
+        
+        for layer in self.vgg_layers:
+            if isinstance(layer, nn.ReLU):
+                layer.inplace = False
         
         # ImageNet归一化
         self.register_buffer('mean', torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1))
@@ -114,22 +118,13 @@ class DiscriminatorLoss(nn.Module):
         # 假样本损失
         fake_loss = F.softplus(discr_fake_pred).mean()
         
-        # R1梯度惩罚
-        if torch.is_grad_enabled() and real_batch.requires_grad:
-            grad_real = torch.autograd.grad(
-                outputs=discr_real_pred.sum(),
-                inputs=real_batch,
-                create_graph=True
-            )[0]
-            grad_penalty = (grad_real.view(grad_real.shape[0], -1).norm(2, dim=1) ** 2).mean()
-            grad_penalty = grad_penalty * self.gp_coef
-        else:
-            grad_penalty = 0.0
+        # R1梯度惩罚（暂时禁用）
+        grad_penalty = 0.0
         
-        total_loss = real_loss + fake_loss + grad_penalty
+        total_loss = real_loss + fake_loss
         
         return total_loss, {
             'real_loss': real_loss.item(),
             'fake_loss': fake_loss.item(),
-            'grad_penalty': grad_penalty if isinstance(grad_penalty, float) else grad_penalty.item()
+            'grad_penalty': 0.0
         }

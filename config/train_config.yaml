@@ -13,17 +13,35 @@ model:
   name: "fusion_net"
   resume: null  # 检查点路径，如需断点续训则填写路径
 
+# 判别器配置
+discriminator:
+  enabled: true
+  ndf: 64
+  lr: 4.0e-4
+
 # 训练配置
 training:
-  epochs: 100
+  epochs: 200
   lr: 1.0e-4          # 初始学习率
   lr_min: 6.25e-6     # 最小学习率
   alpha: 0.2          # SSIM损失权重
+  beta: 0.01          # 感知损失权重
+  gamma: 0.0005       # 对抗损失权重
+  gp_coef: 5.0        # R1梯度惩罚系数
+
+# 优化器配置
+optimizers:
+  generator:
+    lr: 1.0e-4
+    betas: [0.9, 0.999]
+  discriminator:
+    lr: 4.0e-4
+    betas: [0.0, 0.999]
 
 # 检查点配置
 checkpoint:
   save_dir: "checkpoints"
-  save_freq: 1  # 每个epoch保存一次
+  save_freq: 10  # 每个epoch保存一次
 
 # 日志配置
 logging:
